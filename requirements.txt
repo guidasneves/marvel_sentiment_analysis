@@ -6,8 +6,10 @@ time
 python-dotenv
 pandas
 numpy
-matplotlib
 re
 nltk
 tensorflow
 transformers
+matplotlib
+PIL
+wordcloud

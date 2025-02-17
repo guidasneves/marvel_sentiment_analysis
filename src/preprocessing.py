@@ -93,7 +93,8 @@ if __name__ == '__main__':
     PATH = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
-            os.pardir
+            os.pardir,
+            'data'
         )
     )
     

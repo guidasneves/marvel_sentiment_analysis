@@ -159,7 +159,8 @@ if __name__ == '__main__':
     PATH = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
-            os.pardir
+            os.pardir,
+            'data'
         )
     )
     
@@ -188,4 +189,4 @@ if __name__ == '__main__':
     
     df_comics['y'] = labels_comic
     
-    df_comics.to_csv(os.path.join('raw', 'comics_corpus.csv'), index=False)
+    df_comics.to_csv(os.path.join(PATH, 'raw', 'comics_corpus.csv'), index=False)

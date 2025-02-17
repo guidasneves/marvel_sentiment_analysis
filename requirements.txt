@@ -1,0 +1,13 @@
+os
+sys
+requests
+hashlib
+time
+python-dotenv
+pandas
+numpy
+matplotlib
+re
+nltk
+tensorflow
+transformers

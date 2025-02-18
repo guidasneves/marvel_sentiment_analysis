@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.data import Dataset, AUTOTUNE
 from tensorflow.keras.layers import TextVectorization
 from tensorflow.keras.utils import pad_sequences
+from transformers import DistilBertTokenizer
 
 import os
 
@@ -54,7 +55,7 @@ def rnn_vectorization(corpus, max_tokens=None):
     return sentence_vec, vocabulary
 
 
-def rnn_padding(corpus, maxlen=None, shuffle_buffer_size=1000, prefetch_buffer_size=AUTOTUNE, batch_size=128):
+def rnn_padding(corpus, maxlen=None):
     """
     [EN-US]
     
@@ -71,7 +72,7 @@ def rnn_padding(corpus, maxlen=None, shuffle_buffer_size=1000, prefetch_buffer_s
     return padded_corpus
 
 
-def rnn_batch_dataset(corpus, labels, max_len=None, shuffle_buffer_size=1000, prefetch_buffer_size=AUTOTUNE, batch_size=128):
+def rnn_batch_dataset(corpus, labels, shuffle_buffer_size=1000, prefetch_buffer_size=AUTOTUNE, batch_size=128):
     """
     [EN-US]
     
@@ -107,13 +108,25 @@ if __name__ == '__main__':
     comics_data['description'] = comics_data['description'].map(rnn_preprocess)
     comics_data = comics_data.drop_duplicates('description')
     
-    sentence_vec, vocab = rnn_vectorization(comics_data['description'], max_tokens=MAX_TOKENS)
-    X_vec = sentence_vec(comics_data['description'])
+    comics_corpus = comics_data[['description', 'y']].copy()
+    comics_corpus['y'] = comics_corpus['y'].map(lambda x: 1 if x == 'action' else 0)
     
+    sentence_vec, vocab = rnn_vectorization(comics_corpus['description'], max_tokens=MAX_TOKENS)
+    X_vec = sentence_vec(comics_corpus['description'])
+
     MAX_LEN = max([len(text) for text in X_vec])
     
     X_pad = rnn_padding(X_vec, maxlen=MAX_LEN)
-    labels = (comics_data['y'] == 'action').astype(int).to_numpy().reshape(-1, 1)
-    
-    comics_corpus = np.concatenate([X_pad, labels], axis=1)
-    comics_corpus.tofile(os.path.join(PATH, 'preprocessed', 'comics_corpus.csv'))
+    labels = comics_corpus['y'].to_numpy().reshape(-1, 1)
+    comics_tokens = np.concatenate([X_pad, labels], axis=1)
+
+    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased-finetuned-sst-2-english')
+    comics_transformers = tokenizer(
+        comics_corpus['description'].tolist(),
+        return_tensors='pt',
+        padding=True
+    )
+
+    comics_corpus.to_csv('../data/preprocessed/comics_corpus.csv', index=False)
+    np.save('../data/preprocessed/comics_tokens.npy', comics_tokens)
+    np.save('../data/preprocessed/comics_transformers', comics_transformers)

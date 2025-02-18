@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv() # access environment variables (acessa as variáveis de ambiente)
 
 import pandas as pd
+import numpy as np
+from transformers import pipeline
 
 
 class MarvelIngestion(object):
@@ -181,7 +183,6 @@ if __name__ == '__main__':
         'action',
         'non-action'
     ]
-
     # Selecting the texts from the dataset (Selecionando os textos do dataset)
     corpus_comics = df_comics['description'].tolist()
 
@@ -204,7 +205,6 @@ if __name__ == '__main__':
         label = output_bart_comics[i]['labels'][idx]
         # Adding it to a list to add to the final dataset (Adicionando em uma lista para adicionar ao dataset final)
         labels_comic.append(label)
-
     # Adding the labels to the final dataset (Adicionando os labels ao dataset final)
     df_comics['y'] = labels_comic
 

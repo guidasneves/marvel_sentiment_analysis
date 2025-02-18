@@ -1,6 +1,7 @@
-import re
 import pandas as pd
 import numpy as np
+import re
+from collections import Counter
 from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -29,6 +30,17 @@ def save_plot(name, format_='png', dpi=300):
     """
     path = os.path.join(get_dir(), 'plots', name + '.' + format_)
     plt.savefig(path, format=format_, dpi=dpi)
+
+
+def get_word_freq(dataset, label='action'):
+    """
+    
+    """
+    corpus_l = dataset[dataset['y'] == label]['description'].tolist()
+    corpus = ' '.join(corpus_l)
+    word_freq = Counter(corpus.split())
+
+    return word_freq
 
 
 def plot_bar(dataset, colors=None, name=None):

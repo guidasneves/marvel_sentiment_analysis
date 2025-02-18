@@ -1,9 +1,11 @@
+# Packages used in the system
+# Pacotes utilizados no sistema
 import os
 from requests import get
 from hashlib import md5
 from time import time
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv() # access environment variables (acessa as variáveis de ambiente)
 
 import pandas as pd
 
@@ -153,9 +155,13 @@ class MarvelIngestion(object):
 
 
 if __name__ == '__main__':
+    # Setting the environment variables
+    # Definindo as variáveis de ambiente
     PUBLIC_KEY = str(os.environ['MARVEL_PUBLIC_KEY'])
     PRIVATE_KEY = str(os.environ['MARVEL_PRIVATE_KEY'])
 
+    # Setting the global variable with the path of the directory where the data will be loaded
+    # Definindo a variável global com o path do diretório onde os dados serão carregados
     PATH = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
@@ -164,29 +170,43 @@ if __name__ == '__main__':
         )
     )
     
+    # Initializing the class (Inicializando a classe)
     ingestion = MarvelIngestion(PUBLIC_KEY, PRIVATE_KEY)
+    # Extracting the `df_comics` dataset and dropping duplicate examples
+    # Extraindo o dataset `df_comics` e deletando os exemplos duplicados
     df_comics = ingestion(endpoint='comics', format_='comic', offset=0).drop_duplicates('description')
     
-    
+    # Setting the labels (Definindo os labels)
     labels = [
         'action',
         'non-action'
     ]
-    
+
+    # Selecting the texts from the dataset (Selecionando os textos do dataset)
     corpus_comics = df_comics['description'].tolist()
-    
+
+    # Setting the pipeline with the `zero-shot-classification` task and the `facebook/bart-large-mnli` model
+    # Definindo a pipeline com a tarefa de `zero-shot-classification` e o modelo `facebook/bart-large-mnli`
     pipe_bart = pipeline(
         'zero-shot-classification',
         model='facebook/bart-large-mnli'
     )
+    # Running the zero-shot learning task to label the dataset data (Executando a tarefa de zero-shot learning para rotular os dados do dataset)
     output_bart_comics = pipe_bart(corpus_comics, labels)
-    
+
+    # List to store the label of each example (Lista para armazenar o label de cada exemplo)
     labels_comic = []
+    # Going through the model output (Percorrendo o output do modelo)
     for i in range(len(output_bart_comics)):
+        # Selecting the id of the label with the highest score for each example (Selecionando o id do label com o maior score de cada exemplo)
         idx = np.argmax(output_bart_comics[i]['scores'])
+        # Selecting the id from the list of labels (Selecionando o id na lista de labels)
         label = output_bart_comics[i]['labels'][idx]
+        # Adding it to a list to add to the final dataset (Adicionando em uma lista para adicionar ao dataset final)
         labels_comic.append(label)
-    
+
+    # Adding the labels to the final dataset (Adicionando os labels ao dataset final)
     df_comics['y'] = labels_comic
-    
+
+    # Loading the dataset into the `../data/raw/` directory (Carregando o dataset no diretório `../data/raw/`)
     df_comics.to_csv(os.path.join(PATH, 'raw', 'comics_corpus.csv'), index=False)

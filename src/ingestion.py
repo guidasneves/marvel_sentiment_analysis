@@ -1,11 +1,10 @@
 # Packages used in the system
-# Pacotes utilizados no sistema
 import os
 from requests import get
 from hashlib import md5
 from time import time
 from dotenv import load_dotenv
-load_dotenv() # access environment variables (acessa as variáveis de ambiente)
+load_dotenv() # access environment variables
 
 import pandas as pd
 import numpy as np
@@ -39,10 +38,10 @@ class MarvelIngestion(object):
         Inicializa a classe, definindo os argumentos correspondentes.
 
         Args:
-            public_key (str): the public key for connecting and using the APIs (a public key para conexão e uso das APIs).
-            private_key (str): the private key for connecting and using the APIs (a private key para conexão e uso das APIs).
-            url (str, optional): the Marvel Comics API’s base endpoint (O endpoint base da API da Marvel Comics).
-            limit (int, optional): the requested result limit. Defaults to 100 (o limite de resultado solicitad. Padrão para 100).
+            public_key (str): the public key for connecting and using the APIs.
+            private_key (str): the private key for connecting and using the APIs.
+            url (str, optional): the Marvel Comics API’s base endpoint.
+            limit (int, optional): the requested result limit. Defaults to 100.
         """
         super(MarvelIngestion, self).__init__()
 
@@ -66,22 +65,17 @@ class MarvelIngestion(object):
         Define a variável timestamp, o hash e os parâmetros para requisição à API.
 
         Agr:
-            offset (int): The requested offset (skipped results) of the call
-                          (O deslocamento solicitado (resultados ignorados) da chamada).
-            format_ (str, optional): The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None
-                                     (O formato de publicação dos quadrinhos, por ex. comic, hardcover, trade paperback. Padrão para None).
+            offset (int): The requested offset (skipped results) of the call.
+            format_ (str, optional): The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None.
 
         Return:
-            params (dict): dictionary with the parameters for requesting the API containing (dicionário com os parâmetros para solicitação da API contendo):
-                               ts: a timestamp (um timestamp).
-                               apikey: your public key (sua public key).
-                               hash: a md5 digest of the ts parameter, your private key and your public key
-                                     (um digest md5 do parâmetro ts, da private key e da public key).
-                               limit: the requested result limit (o limite de resultado solicitado).
-                               offset: The requested offset (skipped results) of the call
-                                       (O deslocamento solicitado (resultados ignorados) da chamada).
-                               format: The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None
-                                       (O formato de publicação dos quadrinhos, por ex. comic, hardcover, trade paperback. Padrão para None).
+            params (dict): dictionary with the parameters for requesting the API containing:
+                               ts: a timestamp.
+                               apikey: your public key.
+                               hash: a md5 digest of the ts parameter, your private key and your public key.
+                               limit: the requested result limit.
+                               offset: The requested offset (skipped results) of the call.
+                               format: The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None.
         """
         ts = str(time())
         hash_ = md5(
@@ -109,17 +103,13 @@ class MarvelIngestion(object):
         Realiza a conexão com a API, realiza a chamada à API para a extração dos dados solicitados.
         
         Args:
-            endpoint (str): endpoints to access the data, e.g. comics, characters (endpoints para acessar os dados, por ex. comics, characters).
-            offset (int, optional): The requested offset (skipped results) of the call. Default to 0
-                          (O deslocamento solicitado (resultados ignorados) da chamada. Padrão para 0).
-            format_ (str, optional): The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None
-                                     (O formato de publicação dos quadrinhos, por ex. comic, hardcover, trade paperback. Padrão para None).
-            retries (int, optional): attempts to connect, call and extract data. Default to 5
-                                     (tentativas para a conexão, chamada e extração dos dados. Padrão para 5).
+            endpoint (str): endpoints to access the data, e.g. comics, characters.
+            offset (int, optional): The requested offset (skipped results) of the call. Default to 0.
+            format_ (str, optional): The publication format of the comic e.g. comic, hardcover, trade paperback. Default to None.
+            retries (int, optional): attempts to connect, call and extract data. Default to 5.
 
         Returns:
-            df (pandas.DataFrame): data extracted into JSON transformed into a pandas DataFrame
-                                   (dados extraídos em JSON transformados em um DataFrame do pandas).
+            df (pandas.DataFrame): data extracted into JSON transformed into a pandas DataFrame.
         """        
         key = 'name' if endpoint == 'characters' else 'title'
         params = self.get_params(offset=offset, format_=format_)
@@ -158,12 +148,10 @@ class MarvelIngestion(object):
 
 if __name__ == '__main__':
     # Setting the environment variables
-    # Definindo as variáveis de ambiente
     PUBLIC_KEY = str(os.environ['MARVEL_PUBLIC_KEY'])
     PRIVATE_KEY = str(os.environ['MARVEL_PRIVATE_KEY'])
 
     # Setting the global variable with the path of the directory where the data will be loaded
-    # Definindo a variável global com o path do diretório onde os dados serão carregados
     PATH = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
@@ -172,41 +160,39 @@ if __name__ == '__main__':
         )
     )
     
-    # Initializing the class (Inicializando a classe)
+    # Initializing the class
     ingestion = MarvelIngestion(PUBLIC_KEY, PRIVATE_KEY)
     # Extracting the `df_comics` dataset and dropping duplicate examples
-    # Extraindo o dataset `df_comics` e deletando os exemplos duplicados
     df_comics = ingestion(endpoint='comics', format_='comic', offset=0).drop_duplicates('description')
     
-    # Setting the labels (Definindo os labels)
+    # Setting the labels
     labels = [
         'action',
         'non-action'
     ]
-    # Selecting the texts from the dataset (Selecionando os textos do dataset)
+    # Selecting the texts from the dataset
     corpus_comics = df_comics['description'].tolist()
 
     # Setting the pipeline with the `zero-shot-classification` task and the `facebook/bart-large-mnli` model
-    # Definindo a pipeline com a tarefa de `zero-shot-classification` e o modelo `facebook/bart-large-mnli`
     pipe_bart = pipeline(
         'zero-shot-classification',
         model='facebook/bart-large-mnli'
     )
-    # Running the zero-shot learning task to label the dataset data (Executando a tarefa de zero-shot learning para rotular os dados do dataset)
+    # Running the zero-shot learning task to label the dataset data
     output_bart_comics = pipe_bart(corpus_comics, labels)
 
-    # List to store the label of each example (Lista para armazenar o label de cada exemplo)
+    # List to store the label of each example
     labels_comic = []
-    # Going through the model output (Percorrendo o output do modelo)
+    # Going through the model output
     for i in range(len(output_bart_comics)):
-        # Selecting the id of the label with the highest score for each example (Selecionando o id do label com o maior score de cada exemplo)
+        # Selecting the id of the label with the highest score for each example
         idx = np.argmax(output_bart_comics[i]['scores'])
-        # Selecting the id from the list of labels (Selecionando o id na lista de labels)
+        # Selecting the id from the list of labels
         label = output_bart_comics[i]['labels'][idx]
-        # Adding it to a list to add to the final dataset (Adicionando em uma lista para adicionar ao dataset final)
+        # Adding it to a list to add to the final dataset
         labels_comic.append(label)
-    # Adding the labels to the final dataset (Adicionando os labels ao dataset final)
+    # Adding the labels to the final dataset
     df_comics['y'] = labels_comic
 
-    # Loading the dataset into the `../data/raw/` directory (Carregando o dataset no diretório `../data/raw/`)
+    # Loading the dataset into the `../data/raw/` directory
     df_comics.to_csv(os.path.join(PATH, 'raw', 'comics_corpus.csv'), index=False)

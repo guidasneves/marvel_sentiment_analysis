@@ -1,3 +1,4 @@
+# Packages used in the system
 import pandas as pd
 import numpy as np
 import re
@@ -6,19 +7,27 @@ from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
 from PIL import Image
 from wordcloud import WordCloud
-plt.rcParams['figure.figsize'] = (8, 8) # set default size of plots (definindo o tamanho padrão dos plots)
+plt.rcParams['figure.figsize'] = (8, 8) # set default size of plots
 
 import os
 
 
 def get_dir():
     """
-    
+    [EN-US]
+    Returns the path of the project's root directory.
+
+    [PT-BR]
+    Retorna o path do diretório raiz do projeto.
+
+    Returns:
+        dir_path (str): path of the project root directory.
     """
+    # Getting Obtaining the absolute normalized version of the project root path
     dir_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
-            os.pardir
+        os.path.join( # Concatenating the paths
+            os.path.dirname(__file__), # file path
+            os.pardir # Gettin the constant string to refer to the parent directory
         )
     )
 
@@ -27,26 +36,38 @@ def get_dir():
 
 def save_plot(name, format_='png', dpi=300):
     """
+    [EN-US]
+    Saves the plot with the specified name, format and dpi.
     
+    [PT-BR]
+    Salva o plot com o nome, formato e dpi específicado.
+    
+    Argument:
+        name (str): name that the plot will be saved.
+        format_ (str, optional): format in which the plot will be saved. Default to png.
+        dpi (int, optional): dpi that the plot will be saved. Default to 300.
     """
+    # Setting the directory and name in which the plot will be saved (Definindo o diretório e o nome que o plot será salvo)
     path = os.path.join(get_dir(), 'plots', name + '.' + format_)
+    # Saving the plot (Salvando o plot)
     plt.savefig(path, format=format_, dpi=dpi)
-
-
-def get_word_freq(dataset, label='action'):
-    """
-    
-    """
-    corpus_l = dataset[dataset['y'] == label]['description'].tolist()
-    corpus = ' '.join(corpus_l)
-    word_freq = Counter(corpus.split())
-
-    return word_freq
 
 
 def get_word_frequency(dataset, size=10, drop_stopwords=False):
     """
-    
+    [EN-US]
+    Returns the path of the project's root directory.
+
+    [PT-BR]
+    Retorna o path do diretório raiz do projeto.
+
+    Argument:
+        data (pandas.DataFrame): name that the plot will be saved.
+        size (int, optional): 
+        drop_stopwords (bool, optional): 
+
+    Returns:
+        dir_path (str): path of the project root directory.
     """
     corpus = ' '.join(dataset['description'].tolist())
     if drop_stopwords:
@@ -67,9 +88,7 @@ def get_word_frequency(dataset, size=10, drop_stopwords=False):
 
 
 def plot_bar(dataset, colors=None, name=None):
-    """
     
-    """
     labels_count = dataset['y'].value_counts()
     if not colors:
         colors = ['b', 'r']
@@ -97,9 +116,7 @@ def plot_hist_vs(dataset,
                  bins=100, 
                  colors=None, 
                  name=None):
-    """
     
-    """
     if not colors:
         colors = ['b', 'r']
     
@@ -114,9 +131,7 @@ def plot_hist_vs(dataset,
 
 
 def plot_wordcloud(dataset, cmap='gist_heat', name=None):
-    """
     
-    """
     corpus = ' '.join(dataset['description'].tolist())
     mask = np.array(
         Image.open(
@@ -141,9 +156,7 @@ def plot_wordcloud(dataset, cmap='gist_heat', name=None):
 
 
 def plot_word_frequency(dataset, size=10, drop_stopwords=False, colors=None, name=None):
-    """
     
-    """
     width = .25
     x = np.array(range(size))
     x_shifted = x + width
@@ -164,32 +177,44 @@ def plot_word_frequency(dataset, size=10, drop_stopwords=False, colors=None, nam
 
 
 if __name__ == '__main__':
+    # Setting the global variable with the path of the directory where the data will be loaded
     PATH = os.path.join(get_dir(), 'data')
-    COLORS = ['cornflowerblue', 'chocolate']
     
+    # Reading the dataset from the `../data/raw/` directory and checking its size
     comics_data = pd.read_csv(os.path.join(PATH, 'raw', 'comics_corpus.csv'))
     print(f'Comics data shape: {comics_data.shape}')
-    print('Comics dataset:\n', comics_data.isnull().sum())
+    # Counting null values
+    print(f'Null values in comics dataset:\n{comics_data.isnull().sum()}')
+
+    # Setting the global variable with the colors for the plots that will be created later
+    COLORS = ['cornflowerblue', 'chocolate']
     
-    plot_bar(comics_data, colors=COLORS, name='comics_labels')
-    plot_wordcloud(comics_data, name='marvel_wordcloud')
-    
+    # Examining the `index` example for the `label` label examples
     index = 0
     label = 'action'
     comic_text = comics_data[comics_data['y'] == label]['description'].tolist()[index]
     print(f'Comic {index + 1} Label: {label}\n\nText {index + 1} example: {comic_text}')
     
+    # Performing descriptive analysis. We perform descriptive analysis to help identify problems
     print(comics_data.iloc[:, 1:].describe().T)
+    # Analyzing the type of each feature and whether there are null values
     print(comics_data.info())
     
+    # Plotting the distribution and count between the 2 labels, the `action` and the `non-action`
+    plot_bar(comics_data, colors=COLORS, name='comics_labels')
+    # Plotting a wordcloud with the most frequent words in the corpus. The stopwords were excluded, so that we could only see the words that really have importance and meaning
+    plot_wordcloud(comics_data, name='marvel_wordcloud')
+    # Plotting the frequency of the words that appear most in the corpus, except stopwords, divided between the labels `action` and `non-action`
+    plot_word_frequency(comics_data, size=10, colors=COLORS, drop_stopwords=True, name='word_frequency')
+
+    # Creating some features to help with the plots that will be created next
     comics_data['sentence_size'] = comics_data['description'].map(lambda x: len(x) - x.count(' '))
     comics_data['word_count'] = comics_data['description'].map(lambda x: len(x.split()))
     comics_data['capslock_word_count'] = comics_data['description'].map(lambda x: len(re.findall(r'\b[A-Z]+\b', x)))
     comics_data['unique_word_count'] = comics_data['description'].map(lambda x: len(set(x.split())))
-        
+    
+    # Plotting the comparison of the distribution between the `action` label and the `non-action` label in the features that were created
     plot_hist_vs(comics_data, 'sentence_size', xlabel='Sentence size', bins=100, color=COLORS, name='sentence_size')
     plot_hist_vs(comics_data, 'word_count', xlabel='Word count', bins=50, color=COLORS, name='word_count')
     plot_hist_vs(comics_data, 'capslock_word_count', xlabel='Capslock word count', bins=50, color=COLORS, name='capslock_word_count')
     plot_hist_vs(comics_data, 'unie_word_count', xlabel='Unique word count', bins=40, color=COLORS, name='unique_word_count')
-
-    plot_word_frequency(comics_data, size=10, colors=COLORS, drop_stopwords=True, name='word_frequency')

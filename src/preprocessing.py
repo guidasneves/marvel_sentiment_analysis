@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+import string
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import tensorflow as tf
@@ -21,6 +22,7 @@ def rnn_preprocess(sentence):
     """
     stemmer = PorterStemmer()
     stopwords_en = stopwords.words('english')
+    punct = string.punctuation
     
     sentence = sentence.lower()
     sentence = re.sub(r'\W+', ' ', sentence)
@@ -32,62 +34,23 @@ def rnn_preprocess(sentence):
             clean_sentence.append(stem_word)
 
     clean_sentence = ''.join(clean_sentence)
+    clean_sentence = re.sub(f'r[{re.escape(punct)}]', ' ', clean_sentence)
     clean_sentence = re.sub(r'\s+', ' ', clean_sentence).strip()
     
     return clean_sentence
 
 
-def rnn_vectorization(corpus, max_tokens=None):
+def rnn_tokenizer(corpus, max_len=None):
     """
     [EN-US]
     
     [PT-BR]
     
     """
-    sentence_vec = TextVectorization(
-        standardize='lower_and_strip_punctuation',
-        max_tokens=max_tokens,
-        ragged=True
-    )
-    sentence_vec.adapt(corpus)
-    vocabulary = sentence_vec.get_vocabulary(include_special_tokens=True)
+    vectorize_layer = tf.keras.layers.TextVectorization(output_sequence_length=max_len)
+    vectorize_layer.adapt(corpus)
 
-    return sentence_vec, vocabulary
-
-
-def rnn_padding(corpus, maxlen=None):
-    """
-    [EN-US]
-    
-    [PT-BR]
-    
-    """
-    padded_corpus = pad_sequences(
-        corpus.numpy(),
-        maxlen=maxlen,
-        truncating='post',
-        padding='post'
-    )
-
-    return padded_corpus
-
-
-def rnn_batch_dataset(corpus, labels, shuffle_buffer_size=1000, prefetch_buffer_size=AUTOTUNE, batch_size=128):
-    """
-    [EN-US]
-    
-    [PT-BR]
-    
-    """
-    dataset = (
-        Dataset.from_tensor_slices((corpus, labels))
-        .cache()
-        .shuffle(shuffle_buffer_size)
-        .prefetch(prefetch_buffer_size)
-        .batch(batch_size)
-    )
-
-    return dataset
+    return vectorize_layer
 
 
 if __name__ == '__main__':
@@ -111,7 +74,7 @@ if __name__ == '__main__':
     comics_corpus = comics_data[['description', 'y']].copy()
     comics_corpus['y'] = comics_corpus['y'].map(lambda x: 1 if x == 'action' else 0)
     
-    sentence_vec, vocab = rnn_vectorization(comics_corpus['description'], max_tokens=MAX_TOKENS)
+    sentence_vec, vocab = rnn_tokenizer(comics_corpus['description'], max_len=MAX_LEN)
     X_vec = sentence_vec(comics_corpus['description'])
 
     MAX_LEN = max([len(text) for text in X_vec])

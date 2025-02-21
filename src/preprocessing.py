@@ -97,13 +97,22 @@ def rnn_tokenizer(corpus, max_tokens=None, max_len=None):
 
 
 if __name__ == '__main__':
-    # Setting the global variable `PATH` with the path of the directory where the data will be loaded
-    # Configurando a variável global `PATH` com o caminho do diretório onde os dados serão carregados
+    # Setting the global variables `PATH` and `PATH_M`,
+    # with the path of the directory where the data will be loaded and the path of the model weights
+    # Configurando as variáveis globais `PATH` e `PATH_M`,
+    # com o path do diretório onde os dados serão carregados e o path dos pesos modelos
     PATH = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
             os.pardir,
             'data'
+        )
+    )
+    PATH_M = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            os.pardir,
+            'models'
         )
     )
     
@@ -158,7 +167,7 @@ if __name__ == '__main__':
     # Salvamos os hiperparâmetros que foram utilizados no treinamento e o vocabulário gerado
     pickle.dump(
         {'config': sentence_vec.get_config(), 'vocabulary': sentence_vec.get_vocabulary()},
-        open('../models/vectorizer.pkl', 'wb')
+        open(os.path.join(PATH_M, 'vectorizer.pkl'), 'wb')
     )
 
     # Transforming the y labels into a column vector
@@ -171,19 +180,21 @@ if __name__ == '__main__':
     valid_tokens = np.concatenate([valid_tokenized, labels[valid_index]], axis=1)
     test_tokens = np.concatenate([test_tokenized, labels[test_index]], axis=1)
 
-    # Loading the dataset with initial pre-processing to disk
-    # Carregando no disco o dataset com pré-processamento inicial
-    comics_corpus.to_csv('../data/preprocessed/comics_corpus.csv', index=False)
+    # Loading the dataset with initial pre-processing into the `../data/preprocessed/` directory
+    # Carregando no diretório `../data/preprocessed/` o dataset com pré-processamento inicial
+    comics_corpus.to_csv(os.path.join(PATH, 'preprocessed', 'comics_corpus.csv'), index=False)
     
-    # Loading tokenized datasets to disk
-    # Carregando no disco os datasets tokenizados
-    np.save('../data/preprocessed/train_corpus.npy', train_corpus)
-    np.save('../data/preprocessed/valid_corpus.npy', valid_corpus)
-    np.save('../data/preprocessed/test_corpus.npy', test_corpus)
+    # Loading tokenized datasets into the `../data/preprocessed/` directory
+    # Carregando no diretório `../data/preprocessed/` os datasets tokenizados
+    np.save(os.path.join(PATH, 'preprocessed', 'train_tokens.npy'), train_tokens)
+    np.save(os.path.join(PATH, 'preprocessed', 'valid_tokens.npy'), valid_tokens)
+    np.save(os.path.join(PATH, 'preprocessed', 'test_tokens.npy'), test_tokens)
 
     # Tokenizing, padding and returning the tokenized corpus as pytorch tensors using the pre-trained `distilbert` tokenizer
     # Tokenizando, aplicando o padding e retornando o corpus tokenizado como tensores pytorch utilizando o tokenizer `distilbert` pré-treinado
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased-finetuned-sst-2-english')
+    # Defining the tokenizer
+    # Definindo o tokenizer
     comics_transformers = tokenizer(
         comics_corpus['description'].tolist(),
         return_tensors='pt',
@@ -206,6 +217,6 @@ if __name__ == '__main__':
 
     # Loading each preprocessed dataset into the `../data/preprocessed/` directory
     # Carregando cada dataset pré-processado no diretório `../data/preprocessed/`
-    np.save('../data/preprocessed/train_transformers.npy', train_transformers)
-    np.save('../data/preprocessed/valid_transformers.npy', valid_transformers)
-    np.save('../data/preprocessed/test_transformers.npy', test_transformers)
+    np.save(os.path.join(PATH, 'preprocessed', 'train_transformers.npy'), train_transformers)
+    np.save(os.path.join(PATH, 'preprocessed', 'valid_transformers.npy'), valid_transformers)
+    np.save(os.path.join(PATH, 'preprocessed', 'test_transformers.npy'), test_transformers)

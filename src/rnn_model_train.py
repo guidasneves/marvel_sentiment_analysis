@@ -1,12 +1,29 @@
+# Packages used in the system
+# Pacotes utilizados no sistema
 import pandas as pd
 import numpy as np
+import pickle
+import tensorflow as tf
 from tensorflow.data import Dataset, AUTOTUNE
 from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dropout, Dense, GlobalAveragePooling1D
 from tensorflow.keras import Model
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.backend import clear_session
 
 import matplotlib.pyplot as plt
+import os
+import sys
 
+PROJECT_ROOT = os.path.abspath( # Getting Obtaining the absolute normalized version of the project root path (Obtendo a versão absoluta normalizada do path raíz do projeto)
+    os.path.join( # Concatenating the paths (Concatenando os paths)
+        os.path.dirname(__file__), # Getting the path of the scripts directory (Obtendo o path do diretório dos scripts do projeto)
+        os.pardir # Gettin the constant string used by the OS to refer to the parent directory (Obtendo a string constante usada pelo OS para fazer referência ao diretório pai)
+    )
+)
+# Adding path to the list of strings that specify the search path for modules
+# Adicionando o path à lista de strings que especifica o path de pesquisa para os módulos
+sys.path.append(PROJECT_ROOT)
+from src.eda import *
 
 def create_batch_dataset(dataset, batch_size=64, buffer_size=10000, shuffle=False):
     """
@@ -51,5 +68,191 @@ def create_batch_dataset(dataset, batch_size=64, buffer_size=10000, shuffle=Fals
     return dataset_final
 
 
-#if __name__ == '__main__':
+def plot_history(history, metric_name, name=None):
+    """
+    [EN-US]
+    Plots the loss and evaluation metric history for the 
+    training and validation set during model training per epoch.
     
+    [PT-BR]
+    Plota o histórico da loss e da métrica de avaliação para o 
+    training e o validation set durante o treinamento do modelo por epoch.
+
+    Arguments:
+        history (tensorflow.keras.callbacks.History): the History object gets returned by the fit() method of models
+                                                      (the History object gets returned by the fit() method of models).
+        metric_name (str): name of the evaluation metric used in compiling the model
+                           (nome da métrica de avaliação utilizada na compilação do modelo).
+        name (str, optional): name that the plot will be saved. Defaults to None
+                              (nome que o gráfico será salvo. Padrão para None).
+    """
+    # Accessing the vector with the training loss history and validation set
+    # Acessando o vetor com o histórico da loss do training e validation set
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    # Accessing the vector with the training metric history and validation set
+    # Acessando o vetor com o histórico da métrica do training e validation set
+    metric = history.history[metric_name]
+    val_metric = history.history[f'val_{metric_name}']
+    # Selecting the number of epochs
+    # Selecionando a quantidade de epochs
+    epochs = range(len(loss))
+    # Setting lists with values to plot
+    # Definindo as listas com os valores para plotar
+    utils = [loss, 'loss'], [metric, metric_name]
+    val_utils = [val_loss], [val_metric]
+
+    # Defining the figure and creating the plots
+    # Definindo a figura e criando os plots
+    fig, ax = plt.subplots(2, 2, figsize=(12, 6))
+    for i in range(2):
+        fig.suptitle('Performance per Epoch', fontsize=16)
+        # Plotting with all epochs
+        # Plotando com todas as epochs
+        ax[i, 0].plot(epochs, utils[i][0], label='Train', color='cornflowerblue')
+        ax[i, 0].plot(epochs, val_utils[i][0], label='Validation', color='chocolate')
+        ax[i, 0].set_ylabel(utils[i][1], fontsize=16)        
+
+        # Plotting only the final 25% of the epoch
+        # PLotando apenas os 25% final da epoch
+        ax[i, 1].plot(epochs, utils[i][0], label='Train', color='cornflowerblue')
+        ax[i, 1].plot(epochs, val_utils[i][0], label='Validation', color='chocolate')
+        ax[i, 1].set_xlim(int((len(utils[i][0]) * .75)), len(utils[i][0]))
+        if i == 1:
+            ax[i, 0].set_xlabel('epochs', fontsize=16)
+            ax[i, 1].set_xlabel('epochs', fontsize=16)
+    plt.legend(loc='best', fontsize=16)
+    # If a name is passed, the plot is saved
+    # Se algum nome for passado o plot é salvo
+    if name:
+        save_plot(name)
+    plt.show()
+
+
+def hyperparams_tune(hyperparams):
+    """
+    [EN-US]
+    Setting the model for hyperparameter optimization.
+
+    [PT-BR]
+    Define o modelo para a otimização dos hiperparâmetros.
+
+    Argument:
+        hyperparams (list or numpy.array): list of hyperparameter value ranges to be optimized
+                                           (lista com as faixas de valores dos hiperparâmetros para serem otimizados).
+
+    Return:
+        -metric (float): performance metric times negative
+                      (métrica de avaliação vezes negativo). 
+    """
+    # Setting the hyperparameters
+    # Definindo os hiperparâmetros
+    lr = hyperparams[0]
+    embedding_dim = hyperparams[1]
+    dropout_rate = hyperparmas[2]
+
+    # Defining the model to perform the optimization
+    # Definindo o modelo para performar a otimização
+    model = create_and_compile_model(
+        MAX_LEN,
+        VOCAB_SIZE,
+        embedding_dim,
+        dropout_rate=dropout_rate,
+        lr=lr
+    )
+    model.fit(train_set, validation_data=valid_set, epochs=100, verbose=0)
+
+    # Computing performance on the validation set
+    # Calculando o desempenho no validation set
+    metric = model.evaluate(valid_set, verbose=0)[1]
+
+    # -metric, because we want the pair of hyperparameters that minimizes the metric
+    # -metric, porque queremos o par de hiperparâmetros que minimize a métrica
+    return -metric
+
+
+if __name__ == '__main__':
+    # Setting the global variables `PATH` and `PATH_M`,
+    # with the path of the directory where the data will be loaded and the path of the model weights
+    # Configurando as variáveis globais `PATH` e `PATH_M`,
+    # com o path do diretório onde os dados serão carregados e o path dos pesos modelos
+    PATH = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            os.pardir,
+            'preprocessed'
+        )
+    )
+    PATH_M = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            os.pardir,
+            'models'
+        )
+    )
+    
+    # Subset names (nomes dos subsets)
+    files = ['train', 'valid', 'test']
+    datasets = []
+    # Looping through each name (Percorrendo cada nome)
+    for file in files:
+        # Reading each subset and adding it to the list for later extraction
+        # Lendo cada subset e adicionando na lista para extração posteriormente
+        with open(os.path.join(PATH, f'{file}_tokens.npy'), 'rb') as f:
+            datasets.append(np.load(f))
+    # Extracting each subset from the `datasets` list
+    # Extraindo cada subset da lista `datasets`
+    train_corpus, valid_corpus, test_corpus = datasets
+
+    # Dataset global variables
+    # Variáveis globais do dataset
+    BATCH_SIZE = 128
+    BUFFER_SIZE = 1000
+    
+    # Model global variables
+    # Variáveis globais do modelo
+    MAX_LEN = train_corpus.shape[1] - 1
+    EMBEDDING_DIM = 5000
+    DROPOUT_RATE = .1
+    # Loading vocabulary from trained tokenizer
+    # Carregando o vocabulário do tokenizer treinado
+    VOCAB_SIZE = len(pickle.load(open(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))['vocabulary'])
+
+    # Creating `tensorflow.data.Dataset` for each subset
+    # Criando o `tensorflow.data.Dataset` para cada subset
+    train_set = create_batch_dataset(train_corpus, BATCH_SIZE, BUFFER_SIZE, shuffle=True)
+    valid_set = create_batch_dataset(valid_corpus, BATCH_SIZE, BUFFER_SIZE)
+    test_set = create_batch_dataset(test_corpus, BATCH_SIZE, BUFFER_SIZE)
+
+    # Setting the model
+    # Definindo o modelo
+    model = create_and_compile_model(
+        MAX_LEN, 
+        VOCAB_SIZE, 
+        EMBEDDING_DIM, 
+        dropout_rate=DROPOUT_RATE, 
+        lr=1e-2
+    )
+    # Plotting the model summary
+    # Plotando o resumo modelo
+    print(model.summary())
+
+    # Setting the callbacks
+    # Definindo os callbacks
+    checkpoint_cb = ModelCheckpoint(os.path.join(PATH_M, 'lstm_model.keras'), save_best_only=True)
+    early_stopping_cb = EarlyStopping(patience=50, restore_best_weights=True)
+    
+    # Training the model
+    # Treinando o modelo
+    print('Training the model...')
+    history = model.fit(
+        train_set,
+        epochs=25,
+        validation_data=valid_set,
+        callbacks=[checkpoint_cb, early_stopping_cb],
+        verbose=2
+    )
+
+    # Plotting the training models history
+    # PLotando o histórico de treinamento do modelo
+    plot_history(history, 'accuracy')

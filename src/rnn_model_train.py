@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import tensorflow as tf
 from tensorflow.data import Dataset, AUTOTUNE
-from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dropout, Dense, GlobalAveragePooling1D
+from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dropout, Dense, GlobalAveragePooling1D, BatchNormalization
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
@@ -250,7 +250,7 @@ def hyperparams_tune(hyperparams):
     MAX_LEN = train_batch[0].shape[1]
     # Loading vocabulary from trained tokenizer
     # Carregando o vocabulário do tokenizer treinado
-    VOCAB_SIZE = len(pickle.load(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))['vocabulary'])
+    VOCAB_SIZE = len(pickle.load(open(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))['vocabulary'])
     
     # Defining the model to perform the optimization
     # Definindo o modelo para performar a otimização

@@ -335,7 +335,7 @@ if __name__ == '__main__':
     # Definindo a faixa para teste de cada hiperparâmetro
     space = [
         (1e-6, 1e-1, 'log-uniform'), # learning rate
-        (100, 5000), # Embedding units
+        (100, 5000), # Embedding dimension
         (.2, .8), # Dropout rate
         (16, 128), # First LSTM units
         (16, 128), # Second LSTM units

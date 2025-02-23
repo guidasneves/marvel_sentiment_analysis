@@ -1,7 +1,7 @@
 <a name="1"></a>
 # Classificação de Sentimento dos Quadrinhos Marvel de Ponta a Ponta
 
-* **Artigo no Medium** desse projeto em português: [Marvel Comics Sentiment Classification]();
+* **Artigo no Medium** desse projeto em português: [Classificação de Sentimentos dos Quadrinhos Marvel]();
 * Códigos completos desse projeto, com todas as explicações detalhadas em português: [notebooks](./notebooks);
 * Notebooks em inglês: [english notebooks](./notebooks/en_notebooks);
 * Scripts completos desse projeto em inglês e em português: [src](./src/).

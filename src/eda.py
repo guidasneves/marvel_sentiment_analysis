@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
 from PIL import Image
 from wordcloud import WordCloud
-plt.rcParams['figure.figsize'] = (8, 8) # set default size of plots
+plt.rcParams['figure.figsize'] = (8, 8) # set default size of plots (Define o tamanho padrão dos plots)
 
 import os
 
@@ -25,11 +25,18 @@ def get_dir():
         dir_path (str): path of the project root directory
                         (caminho do diretório raiz do projeto).
     """
-    # Getting Obtaining the absolute normalized version of the project root path
+    # Getting the absolute normalized version of the project root path
+    # Obtendo a versão normalizada absoluta do caminho raiz do projeto
     dir_path = os.path.abspath(
-        os.path.join( # Concatenating the paths
-            os.path.dirname(__file__), # file path
-            os.pardir # Gettin the constant string to refer to the parent directory
+        # Concatenating the paths
+        # Concatenando os paths
+        os.path.join(
+            # File path
+            # Caminho do arquivo atual
+            os.path.dirname(__file__),
+            # Getting the constant string to refer to the parent directory
+            # Obtendo a string constante para fazer referência ao diretório pai
+            os.pardir
         )
     )
 

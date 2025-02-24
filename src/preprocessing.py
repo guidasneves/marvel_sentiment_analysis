@@ -11,8 +11,9 @@ from tensorflow.data import Dataset, AUTOTUNE
 from tensorflow.keras.layers import TextVectorization
 from tensorflow.keras.utils import pad_sequences
 from sklearn.model_selection import StratifiedShuffleSplit
-from transformers import DistilBertTokenizer
 import pickle
+from transformers import DistilBertTokenizer
+from datasets import Dataset
 
 import os
 
@@ -96,6 +97,48 @@ def rnn_tokenizer(corpus, max_tokens=None, max_len=None):
     return vectorize_layer
 
 
+def tensors_to_dataset(input_ids, attention_mask, labels, idx=...):
+    """
+    [EN-US]
+    Creates a datasets.Dataset with the subset of tokenized tensors, the labels
+    and the corresponding ids to select the subset.
+    
+    [PT-BR]
+    Cria um datasets.Dataset com do subset dos tensores tokenizados, os labels
+    e os ids correspondetes para selecionar o subset.
+
+    Arguments:
+        input_ids (torch.Tensor): tensor with the tokenized sentences returned by the tokenizer
+                                  (tensor com as frases tokenizadas retornadas pelo tokenizador).
+        attention_mask (torch.Tensor): tensor that indicates the paddings of the tokenized sentences returned by the tokenizer
+                                       (tensor que indica os paddings das frases tokenizadas retornadas pelo tokenizador).
+        labels (numpy.array or pandas.Series): array with the labels corresponding to the tokenized tensor
+                                               (array com os labels correspondentes ao tensor tokenizado).
+        idx (numpy.array or list, optional): array of indices to select the subset of tensors and the corresponding labels. Defaults to ...
+                                             (array de índices para selecionar o subset dos tensores e os labels correspondentes. Padrão para ...).
+
+    Return:
+        dataset (datasets.Dataset): Dataset with values in pytorch tensor format
+                                    (Dataset com os valores em formato tensores pytorch).
+    """
+    # Creating the dictionary with the tensors, dividing each one by the id subset argument
+    # Criando o dicionário com os tensores, dividindo cada um pelo argumento do subset de ids
+    dataset_dict = {
+        'input_ids': input_ids[idx],
+        'attention_mask': attention_mask[idx],
+        'labels': labels[idx]
+    }
+
+    # # Creating the `Dataset` object from the dictionary we created above
+    # Criando o objeto `Dataset` do dicionário que criamos acima 
+    dataset = Dataset.from_dict(dataset_dict)
+    # Transforming the Dataset format to pytorch tensor
+    # Transformando o formato do Dataset para tensor pytorch
+    dataset = dataset.with_format('torch')
+    
+    return dataset
+
+
 if __name__ == '__main__':
     # Setting the global variables `PATH` and `PATH_M`,
     # with the path of the directory where the data will be loaded and the path of the model weights
@@ -122,14 +165,15 @@ if __name__ == '__main__':
 
     # Preprocessing the data
     # Pré-processando os dados
-    comics_data['description'] = comics_data['description'].map(rnn_preprocess)
+    comics_data_pre = comics_data.copy()
+    comics_data_pre['description'] = comics_data_pre['description'].map(rnn_preprocess)
     # Removing duplicate examples after preprocessing
     # Removendo os exemplos duplicados após o pré-processamento
-    comics_data = comics_data.drop_duplicates('description')
+    comics_data_pre = comics_data_pre.drop_duplicates('description')
 
     # Creating a dataset with only the features that will be used in the mode
     # Criando um dataset com apenas as features que serão usadas no modelo
-    comics_corpus = comics_data[['description', 'y']].copy()
+    comics_corpus = comics_data_pre[['description', 'y']].copy()
     # Transforming the target label y into binary
     # Transformando o target label y em binário
     comics_corpus['y'] = comics_corpus['y'].map(lambda x: 1 if x == 'action' else 0)
@@ -160,7 +204,6 @@ if __name__ == '__main__':
     valid_tokenized = sentence_vec(valid_corpus['description'])
     test_tokenized = sentence_vec(test_corpus['description'])
 
-
     # Loading the trained tokenization model into the `../models/` directory for later use
     # We save the hyperparameters that were used in training and the generated vocabulary
     # Carregando o modelo de tokenização treinado no diretório `../models/` para usarmos posteriormente
@@ -172,13 +215,13 @@ if __name__ == '__main__':
 
     # Transforming the y labels into a column vector
     # Transformando os labels y em um vetor de coluna
-    labels = comics_corpus['y'].to_numpy().reshape(-1, 1)
+    labels_pre = comics_corpus['y'].to_numpy().reshape(-1, 1)
     
     # Concatenating the corpus of each subset and the corresponding labels
     # Concatenando o corpus de cada subset e os labels correspondentes
-    train_tokens = np.concatenate([train_tokenized, labels[train_index]], axis=1)
-    valid_tokens = np.concatenate([valid_tokenized, labels[valid_index]], axis=1)
-    test_tokens = np.concatenate([test_tokenized, labels[test_index]], axis=1)
+    train_tokens = np.concatenate([train_tokenized, labels_pre[train_index]], axis=1)
+    valid_tokens = np.concatenate([valid_tokenized, labels_pre[valid_index]], axis=1)
+    test_tokens = np.concatenate([test_tokenized, labels_pre[test_index]], axis=1)
 
     # Loading the dataset with initial pre-processing into the `../data/preprocessed/` directory
     # Carregando no diretório `../data/preprocessed/` o dataset com pré-processamento inicial
@@ -196,7 +239,7 @@ if __name__ == '__main__':
     # Defining the tokenizer
     # Definindo o tokenizer
     comics_transformers = tokenizer(
-        comics_corpus['description'].tolist(),
+        comics_data['description'].tolist(),
         return_tensors='pt',
         padding=True,
         truncation=True
@@ -204,19 +247,27 @@ if __name__ == '__main__':
     # Setting the vector representations of the corpus
     # Definindo as representações vetoriais do corpus
     transformers_tokens = comics_transformers['input_ids']
+    transformers_attention = comics_transformers['attention_mask']
 
-    # Concatenating the tokenized corpus with the corresponding y labels
-    # Concatenando o corpus tokenizado com os labels y correspondentes
-    dataset_transformers = np.concatenate(
-        [transformers_tokens.numpy(), labels], axis=1
-    )
+    # Selecting labels from the raw dataset
+    # Selecionando os labels do dataset bruto
+    labels = comics_data['y'].to_numpy().reshape(-1, 1)
+    
+    # Splitting between training and the validation and testing subset
+    # Dividindo entre treinamento e o subset da validação e teste
+    train_idx, subset_idx = next(split_train.split(transformers_tokens, labels))
+    # Splitting between validation and testing
+    # Dividindo entre validação e teste
+    valid_idx, test_idx = next(split_test.split(transformers_tokens[subset_idx], labels[subset_idx]))
 
-    # Selecting each subset with their respective indices resulting from the `stratified sampling split`
-    # Selecionando cada subset com os seus respectivos índices resultantes da `stratified sampling split`
-    train_transformers, valid_transformers, test_transformers = dataset_transformers[train_index], dataset_transformers[valid_index], dataset_transformers[test_index]
+    # Transforming split pytorch tensor subsets for type `Dataset` into dictionary format
+    # Transformando os subsets de tensores pytorch divididos para o tipo `Dataset` em formato de dicionário
+    train_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, train_idx)
+    valid_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, valid_idx)
+    test_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, test_idx)
 
-    # Loading each preprocessed dataset into the `../data/preprocessed/` directory
-    # Carregando cada dataset pré-processado no diretório `../data/preprocessed/`
-    np.save(os.path.join(PATH, 'preprocessed', 'train_transformers.npy'), train_transformers)
-    np.save(os.path.join(PATH, 'preprocessed', 'valid_transformers.npy'), valid_transformers)
-    np.save(os.path.join(PATH, 'preprocessed', 'test_transformers.npy'), test_transformers)
+    # Loading each pre-processed dataset and its metadata into its specific directory within the `../data/preprocessed/` directory
+    # Carregando cada dataset pré-processado e seus metadados dentro de seu diretório específico dentro do diretório `../data/preprocessed/`
+    train_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'train_dataset'))
+    valid_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'valid_dataset'))
+    test_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'test_dataset'))

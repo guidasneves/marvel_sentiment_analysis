@@ -18,7 +18,7 @@
     },
     "labels": {
       "feature": {
-        "dtype": "string",
+        "dtype": "int64",
         "_type": "Value"
       },
       "_type": "Sequence"

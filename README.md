@@ -14,7 +14,7 @@ Esse repositório contêm a implementação de um sistema de classificação de 
 1. A primeira é uma arquitetura de LSTMs bidirecionais, criadas e treinadas do 0;
 2. A segunda é aplicando o fine-tuning em um modelo transformers pré-treinado.
 
-O sistema foi criado de ponta a ponta, ou seja, desde a conexão e autorização com a [API da Marvel](https://developer.marvel.com/), extração dos dados da API, realização da análise exploratória e do pré-processamento dos dados, que envolve na conversão de todas as palavras para lowercase, remoção das stopwords, stemming, remoção de pontuações e tokenização, e em seguida, a definição do modelo e inferência, dada os quadrinhos selecionados, posso escolher com mais clareza quais irei ler.
+O sistema foi criado de ponta a ponta, ou seja, desde a conexão e autorização com a [API da Marvel](https://developer.marvel.com/), extração dos dados da API, realização da análise exploratória e do pré-processamento dos dados, que envolve na conversão de todas as palavras para lowercase, remoção das stopwords, stemming, remoção de pontuações, divisão do dataset, tokenização e padding, e em seguida, a definição e treinamento do modelo, dada os quadrinhos selecionados, posso escolher com mais clareza quais irei ler.
 
 O algoritmo da RNN utilizando LSTM bidirecionais foi criado utilizando o framework [tensorflow](https://www.tensorflow.org/?hl=pt-br). O algoritmo de fine-tuning no modelo transformers pré-treinado foi realizado utilizando o [Hugging Face](https://huggingface.co/) (🤗).
 
@@ -39,7 +39,8 @@ O algoritmo da RNN utilizando LSTM bidirecionais foi criado utilizando o framewo
 ### Instalação
 ```terminal
 git clone https://github.com/guidasneves/marvel_sentiment_analysis.git
-python -m pip install -r requirements.txt
+cd marvel_sentiment_analysis
+pip install -r requirements.txt
 ```
 
 <a name="4.3"></a>

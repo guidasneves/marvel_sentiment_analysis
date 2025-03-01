@@ -5,11 +5,12 @@ import numpy as np
 import pickle
 import tensorflow as tf
 from tensorflow.data import Dataset, AUTOTUNE
-from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dropout, Dense, GlobalAveragePooling1D, BatchNormalization
+from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dropout, Dense, BatchNormalization
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import BinaryCrossentropy
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.metrics import F1Score
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.backend import clear_session
 from skopt import gp_minimize
 
@@ -75,12 +76,8 @@ def create_and_compile_model(
     input_shape,
     vocab_size,
     lr=1e-3,
-    embedding_dim=1000,
-    dropout_rate=.1,
-    lstm_1=128,
-    lstm_2=64,
-    dense_1=64,
-    dense_2=32
+    embedding_dim=32,
+    dropout_rate=[.5, .4]
 ):
     """
     [EN-US]
@@ -96,18 +93,10 @@ def create_and_compile_model(
                           (tamanho do vocabulário usado para tokenizar o dataset, ele será usado para dimensionar o embedding).
         lr (float, optional): the learning rate. Defaults to 1e-3
                               (o learning rate. Padrão para 1e-3).
-        embedding_dim (int, optional): embedding vector dimension size. Defaults to 1000
-                                       (tamanho da dimensão do embedding vector. Padrão para 1000).
-        dropout_rate (float, optional): float between 0 and 1. Fraction of the input units to drop. Defaults to 0.1
-                                        (flutuar entre 0 e 1. Fração das unidades de entrada a serem eliminadas. Padrão para 0.1).
-        lstm_1 (int, optional): number of neurons for layer lstm_1. Defaults to 128
-                                (quantidade de neurônios para a layer lstm_1. Padrão para 128).
-        lstm_2 (int, optional): number of neurons for layer lstm_2. Defaults to 64
-                                (quantidade de neurônios para a layer lstm_2. Padrão para 64).
-        dense_1 (int, optional): number of neurons for layer dense_1. Defaults to 128
-                                 (quantidade de neurônios para a layer dense_1. Padrão para 128).
-        dense_2 (int, optional): number of neurons for layer dense_2. Defaults to 64
-                                 (quantidade de neurônios para a layer dense_2. Padrão para 64).
+        embedding_dim (int, optional): embedding vector dimension size. Defaults to 32
+                                       (tamanho da dimensão do embedding vector. Padrão para 32).
+        dropout_rate (array, optional): vector with two elements, one for each layer.. Fraction of the input units to drop. Defaults to [0.5 and 0.4]
+                                        (vetor com dois elementos, uma para cada layer. Fração das unidades de entrada a serem eliminadas. Padrão para [0.5 e 0.4]).
 
     Return:
         model (tensorflow.keras.Model): model defined and compiled
@@ -116,7 +105,6 @@ def create_and_compile_model(
     # Setting a seed
     # Definindo uma seed
     tf.random.set_seed(42)
-    
     # Clearing all internal variables
     # Limpando todas as variáveis internas
     clear_session()
@@ -125,33 +113,22 @@ def create_and_compile_model(
     # Definindo a arquitetura do modelo    
     input_layer = Input(shape=(input_shape,))
     X = Embedding(vocab_size, embedding_dim, name='embedding_layer')(input_layer)
-    #X = tf.keras.layers.Conv1D(filters=32, kernel_size=7, activation='relu')(X)
-    X = Bidirectional(LSTM(lstm_1, return_sequences=True), name='bi_lstm_layer_1')(X)
-    X = Dropout(rate=dropout_rate, name='dropout_layer_1')(X)
-    #X = BatchNormalization(axis=-1)(X)
-    X = Bidirectional(LSTM(lstm_2, return_sequences=False), name='bi_lstm_layer_2')(X)
-    X = Dropout(rate=dropout_rate, name='dropout_layer_2')(X)
-    #X = BatchNormalization(axis=-1)(X)
-    #X = Bidirectional(LSTM(64), name='bi_lstm_layer_3')(X)
-    #X = Dropout(rate=dropout_rate, name='dropout_layer_3')(X)
-    #X = BatchNormalization(axis=-1)(X)
-    #X = GlobalAveragePooling1D()(X)
-    X = Dense(dense_1, activation='relu', name='dense_layer_1')(X)
+    X = Dropout(rate=dropout_rate[0])(X)
     X = BatchNormalization()(X)
-    X = Dense(dense_2, activation='relu', name='dense_layer_2')(X)
+    X = Bidirectional(LSTM(2, return_sequences=False), name='lstm_bidirectional_layer')(X)
+    X = Dropout(rate=dropout_rate[1])(X)
     X = BatchNormalization()(X)
-    #X = Dense(128, activation='elu', kernel_regularizer=tf.keras.regularizers.l2(lambda_r), name='dense_layer_3')(X)
-    output = Dense(1, activation='linear', name='output_layer')(X)
+    output = Dense(1, activation='sigmoid', name='output_layer')(X)
     # Setting the input and output of the model
     # Definindo o input e o output do modelo
-    model = Model(inputs=input_layer, outputs=output, name='LSTM_Bidirectional')
+    model = Model(inputs=input_layer, outputs=output)
 
     # Compiling the model
     # Compilando o modelo
     model.compile(
         optimizer=Adam(learning_rate=lr),
-        loss=BinaryCrossentropy(from_logits=True),
-        metrics=['accuracy']
+        loss=BinaryCrossentropy(),
+        metrics=[F1Score(average='macro', threshold=.5)]
     )
 
     return model
@@ -234,23 +211,9 @@ def hyperparams_tune(hyperparams):
         -metric (float): performance metric times negative
                          (métrica de avaliação vezes negativo). 
     """
-    # Setting the hyperparameters
-    # Definindo os hiperparâmetros
+    # Setting the hyperparameter
+    # Definindo o hiperparâmetro
     lr = hyperparams[0]
-    embedding_dim = hyperparams[1]
-    dropout_rate = hyperparams[2]
-    lstm_1 = hyperparams[3]
-    lstm_2 = hyperparams[4]
-    dense_1 = hyperparams[5]
-    dense_2 = hyperparams[6]
-    
-    # Setting the MAX_LEN
-    # Definindo o MAX_LEN
-    train_batch = next(X_train_opt.as_numpy_iterator())
-    MAX_LEN = train_batch[0].shape[1]
-    # Loading vocabulary from trained tokenizer
-    # Carregando o vocabulário do tokenizer treinado
-    VOCAB_SIZE = len(pickle.load(open(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))['vocabulary'])
     
     # Defining the model to perform the optimization
     # Definindo o modelo para performar a otimização
@@ -258,14 +221,8 @@ def hyperparams_tune(hyperparams):
         MAX_LEN,
         VOCAB_SIZE,
         lr=lr,
-        embedding_dim=embedding_dim,
-        dropout_rate=dropout_rate,
-        lstm_1=lstm_1,
-        lstm_2=lstm_2,
-        dense_1=dense_1,
-        dense_2=dense_2
     )
-    model.fit(X_train_opt, validation_data=X_valid_opt, epochs=25, verbose=0)
+    model.fit(train_set, validation_data=valid_set, epochs=15, verbose=0)
 
     # Computing performance on the validation set
     # Calculando o desempenho no validation set
@@ -403,3 +360,7 @@ if __name__ == '__main__':
     # Avaliando o modelo nos dados de treino e de validação
     print(f'Train set evaluate: {model.evaluate(train_set, verbose=0)[1]}')
     print(f'Validation set evaluate: {model.evaluate(valid_set, verbose=0)[1]}')
+
+    # Evaluating the final model on the test set
+    # Avaliando o modelo final no test set 
+    print(f'Test set evaluate: {model.evaluate(test_set, verbose=0)[1]:.4f}')

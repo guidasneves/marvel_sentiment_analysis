@@ -2,9 +2,9 @@
 # Classificação de Sentimento dos Quadrinhos Marvel de Ponta a Ponta
 
 * A publicação do artigo desse projeto no Medium foi separada entre 3 artigos. O 1° artigo aborda a etapa da ingestão, EDA e pré-processamento, o 2° artigo aborda a etapa da criação, treinamento e avaliação do modelo LSTM bidirecional, e o 3° artigo aborda a etapa do fine-tuning no modelo DistilBERT pré-treinado. **Artigos no Medium** desse projeto em português:
-  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 1) - Ingestão, EDA e Pré-processamento](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-1-ingest%C3%A3o-eda-e-pr%C3%A9-processamento-c5a0e35bb586);
-  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 2) - LSTM Bidirecional](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-2-lstm-bidirecional-101ca13b92a6);
-  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 3) - Fine-tuning do DistilBERT](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-3-fine-tuning-do-distilbert-2648e14c9123).
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 1) - Ingestão, EDA e Pré-processamento](https://medium.com/@guineves.py/c5a0e35bb586);
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 2) - LSTM Bidirecional](https://medium.com/@guineves.py/101ca13b92a6);
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 3) - Fine-tuning do DistilBERT](https://medium.com/@guineves.py/2648e14c9123).
 * Códigos completos desse projeto, com todas as explicações detalhadas em português: [notebooks](./notebooks);
   * Notebooks em inglês: [english notebooks](./notebooks/en_notebooks);
 * Scripts completos desse projeto em inglês e em português: [src](./src/).

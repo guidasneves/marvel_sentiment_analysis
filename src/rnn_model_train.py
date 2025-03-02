@@ -1,6 +1,5 @@
 # Packages used in the system
 # Pacotes utilizados no sistema
-import pandas as pd
 import numpy as np
 import pickle
 import tensorflow as tf
@@ -13,11 +12,11 @@ from tensorflow.keras.metrics import F1Score
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.backend import clear_session
 from skopt import gp_minimize
+from sklearn.decomposition import KernelPCA
 
 import matplotlib.pyplot as plt
 import os
 import sys
-
 PROJECT_ROOT = os.path.abspath( # Getting Obtaining the absolute normalized version of the project root path (Obtendo a versão absoluta normalizada do path raíz do projeto)
     os.path.join( # Concatenating the paths (Concatenando os paths)
         os.path.dirname(__file__), # Getting the path of the scripts directory (Obtendo o path do diretório dos scripts do projeto)
@@ -28,6 +27,7 @@ PROJECT_ROOT = os.path.abspath( # Getting Obtaining the absolute normalized vers
 # Adicionando o path à lista de strings que especifica o path de pesquisa para os módulos
 sys.path.append(PROJECT_ROOT)
 from src.eda import *
+
 
 def create_batch_dataset(dataset, batch_size=64, buffer_size=10000, shuffle=False):
     """
@@ -134,71 +134,10 @@ def create_and_compile_model(
     return model
 
 
-def plot_history(history, metric_name, name=None):
-    """
-    [EN-US]
-    Plots the loss and evaluation metric history for the 
-    training and validation set during model training per epoch.
-    
-    [PT-BR]
-    Plota o histórico da loss e da métrica de avaliação para o 
-    training e o validation set durante o treinamento do modelo por epoch.
-
-    Arguments:
-        history (tensorflow.keras.callbacks.History): the History object gets returned by the fit() method of models
-                                                      (the History object gets returned by the fit() method of models).
-        metric_name (str): name of the evaluation metric used in compiling the model
-                           (nome da métrica de avaliação utilizada na compilação do modelo).
-        name (str, optional): name that the plot will be saved. Defaults to None
-                              (nome que o gráfico será salvo. Padrão para None).
-    """
-    # Accessing the vector with the training loss history and validation set
-    # Acessando o vetor com o histórico da loss do training e validation set
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    # Accessing the vector with the training metric history and validation set
-    # Acessando o vetor com o histórico da métrica do training e validation set
-    metric = history.history[metric_name]
-    val_metric = history.history[f'val_{metric_name}']
-    # Selecting the number of epochs
-    # Selecionando a quantidade de epochs
-    epochs = range(len(loss))
-    # Setting lists with values to plot
-    # Definindo as listas com os valores para plotar
-    utils = [loss, 'loss'], [metric, metric_name]
-    val_utils = [val_loss], [val_metric]
-
-    # Defining the figure and creating the plots
-    # Definindo a figura e criando os plots
-    fig, ax = plt.subplots(2, 2, figsize=(12, 6))
-    for i in range(2):
-        fig.suptitle('Performance per Epoch', fontsize=16)
-        # Plotting with all epochs
-        # Plotando com todas as epochs
-        ax[i, 0].plot(epochs, utils[i][0], label='Train', color='cornflowerblue')
-        ax[i, 0].plot(epochs, val_utils[i][0], label='Validation', color='chocolate')
-        ax[i, 0].set_ylabel(utils[i][1], fontsize=16)        
-
-        # Plotting only the final 25% of the epoch
-        # PLotando apenas os 25% final da epoch
-        ax[i, 1].plot(epochs, utils[i][0], label='Train', color='cornflowerblue')
-        ax[i, 1].plot(epochs, val_utils[i][0], label='Validation', color='chocolate')
-        ax[i, 1].set_xlim(int((len(utils[i][0]) * .75)), len(utils[i][0]))
-        if i == 1:
-            ax[i, 0].set_xlabel('epochs', fontsize=16)
-            ax[i, 1].set_xlabel('epochs', fontsize=16)
-    plt.legend(loc='best', fontsize=16)
-    # If a name is passed, the plot is saved
-    # Se algum nome for passado o plot é salvo
-    if name:
-        save_plot(name)
-    plt.show()
-
-
 def hyperparams_tune(hyperparams):
     """
     [EN-US]
-    Setting the model for hyperparameter optimization.
+    Sets the model for hyperparameter optimization.
 
     [PT-BR]
     Define o modelo para a otimização dos hiperparâmetros.
@@ -222,15 +161,158 @@ def hyperparams_tune(hyperparams):
         VOCAB_SIZE,
         lr=lr,
     )
-    model.fit(train_set, validation_data=valid_set, epochs=15, verbose=0)
+    model.fit(train_set, validation_data=val_set, epochs=15, verbose=0)
 
     # Computing performance on the validation set
     # Calculando o desempenho no validation set
-    metric = model.evaluate(valid_set, verbose=0)[1]
+    metric = model.evaluate(val_set, verbose=0)[1]
 
     # -metric, because we want the pair of hyperparameters that minimizes the metric
     # -metric, porque queremos o par de hiperparâmetros que minimize a métrica
     return -metric
+
+
+def plot_history(history, metric_name, colors=['b', 'r'], name=None):
+    """
+    [EN-US]
+    Plots the loss and evaluation metric history for the training and validation set,
+    during model training per epoch.
+    
+    [PT-BR]
+    Plota o histórico da loss e da métrica de avaliação para o training e o validation set,
+    durante o treinamento do modelo por epoch.
+
+    Arguments:
+        history (tensorflow.keras.callbacks.History): the History object gets returned by the fit() method of models
+                                                      (the History object gets returned by the fit() method of models).
+        metric_name (str): name of the evaluation metric used in compiling the model
+                           (nome da métrica de avaliação utilizada na compilação do modelo).
+        colors (list, optional): list with 2 colors of arguments for the plot. Defaults to ['b', 'r']
+                                 (lista com 2 cores de argumentos para o plot. Padrão para ['b', 'r']).
+        name (str, optional): name that the plot will be saved. Defaults to None
+                              (nome que o gráfico será salvo. Padrão para None).
+    """
+    # Accessing the vector with the training loss history and validation set
+    # Acessando o vetor com o histórico da loss do training e validation set
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    # Accessing the vector with the training metric history and validation set
+    # Acessando o vetor com o histórico da métrica do training e validation set
+    metric = history.history[metric_name]
+    val_metric = history.history[f'val_{metric_name}']
+    # Selecting the number of epochs
+    # Selecionando a quantidade de epochs
+    epochs = range(len(loss))
+    # Setting lists with values to plot
+    # Definindo as listas com os valores para plotar
+    utils = [loss, 'loss'], [metric, metric_name]
+    val_utils = [val_loss], [val_metric]
+
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('default')
+    # Defining the figure and creating the plots
+    # Definindo a figura e criando os plots
+    fig, ax = plt.subplots(2, 2, figsize=(12, 6))
+    for i in range(2):
+        fig.suptitle('Performance per Epoch', fontsize=16)
+        # Plotting with all epochs
+        # Plotando com todas as epochs
+        ax[i, 0].plot(epochs, utils[i][0], label='Train', color=colors[0], linewidth=2)
+        ax[i, 0].plot(epochs, val_utils[i][0], label='Validation', color=colors[1], linewidth=2)
+        ax[i, 0].set_ylabel(utils[i][1], fontsize=16)        
+
+        # Plotting only the final 25% of the epoch
+        # PLotando apenas os 25% final da epoch
+        ax[i, 1].plot(epochs, utils[i][0], label='Train', color=colors[0], linewidth=2)
+        ax[i, 1].plot(epochs, val_utils[i][0], label='Validation', color=colors[1], linewidth=2)
+        ax[i, 1].set_xlim(int((len(utils[i][0]) * .75)), len(utils[i][0]))
+        if i == 1:
+            ax[i, 0].set_xlabel('epochs', fontsize=16)
+            ax[i, 1].set_xlabel('epochs', fontsize=16)
+    plt.legend(loc='best', fontsize=16)
+    # If a name is passed, the plot is saved
+    # Se algum nome for passado o plot é salvo
+    if name:
+        save_plot(name)
+    plt.show()
+
+
+def plot_word_embeddings(
+    embeddings,
+    pos_corpus,
+    neg_corpus,
+    vocabulary,
+    idx=0,
+    words_to_plot=15,
+    name=None,
+    colors=['b', 'r']
+):
+    """
+    [EN-US]
+    Returns a scatterplot with the word embeddings in a 2D space.
+    
+    [PT-BR]
+    Retorna um gráfico de dispersão com as word embeddings em um espaço 2D.
+    
+    Arguments:
+        embeddings (numpy.array): the weights of the embedding layer
+                                  (os pesos da embedding layer).
+        pos_corpus (numpy.array): array with positive tokenized examples
+                                  (array com os exemplos tokenizados positivos).
+        neg_corpus (numpy.array): array with negative tokenized examples
+                                  (array com os exemplos tokenizados negativos).
+        vocabulary (array): vocabulary trained on the training set
+                            (vocabulário treinado sobre o training set).
+        idx (int, optional): example of the corpus that the embeddings will be extracted to plot. Defaults to 0
+                             (exemplo do corpus que as embeddings serão extraídas para plotar. Padrão para 0).
+        words_to_plot (int, optional): number of tokens to extract from each corpus. Defaults to 15
+                                       (quantidade de tokens para extrair de cada corpus. Padrão para 15).
+        name (str, optional): name that the plot will be saved. Defaults to None
+                              (nome que o gráfico será salvo. Padrão para None).
+        colors (list, optional): list with 2 colors of arguments for the plot. Defaults to ['b', 'r']
+                                 (lista com 2 cores de argumentos para o plot. Padrão para ['b', 'r']).
+    """
+    # Selecting the example `idx` through the token `words_to_plot` from each corpus to plot their respective embeddings
+    # Selecionando o exemplo `idx` até o token `words_to_plot` de cada corpus para plotar seus respectivos embeddings
+    pos_seq = pos_corpus[idx][:words_to_plot]
+    neg_seq = neg_corpus[idx][:words_to_plot]
+
+    # Computing the dimensionality reduction of embeddings
+    # Computando a redução de dimensionalidade dos embeddings
+    pca = KernelPCA(
+        n_components=2,
+        kernel='rbf',
+        gamma=.9,
+        n_jobs=-1,
+        random_state=42
+    )
+    embeddings_2D = pca.fit_transform(embeddings)
+
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('fivethirtyeight')
+    # Plotting the embeddings
+    # Plotando os embeddings
+    plt.figure(figsize=(8, 8))
+    # Scatter plot for positive words
+    # Gráfico de dispersão para palavras positivas
+    plt.scatter(embeddings_2D[pos_seq][:, 0], embeddings_2D[pos_seq][:, 1], color=colors[0], label='Action')
+    for i, token in enumerate(pos_seq):
+        plt.annotate(vocabulary[token], (embeddings_2D[pos_seq][i, 0], embeddings_2D[pos_seq][i, 1]))
+
+    # Scatter plot for negative words
+    # Gráfico de dispersão para palavras negativas
+    plt.scatter(embeddings_2D[neg_seq][:, 0], embeddings_2D[neg_seq][:, 1], color=colors[1], label='Non-action')
+    for i, token in enumerate(neg_seq):
+        plt.annotate(vocabulary[token], (embeddings_2D[neg_seq][i, 0], embeddings_2D[neg_seq][i, 1]))
+    plt.title('Word Embeddings in 2D', fontsize=16)
+    plt.legend(loc='best', fontsize=16, title='Labels')
+    # If a name is passed, the plot is saved
+    # Se algum nome for passado o plot é salvo
+    if name:
+        save_plot(name)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -256,7 +338,7 @@ if __name__ == '__main__':
     
     # Subset names
     # Nomes dos subsets
-    files = ['train', 'valid', 'test']
+    files = ['train', 'validation', 'test']
     datasets = []
     # Looping through each name
     # Percorrendo cada nome
@@ -267,44 +349,34 @@ if __name__ == '__main__':
             datasets.append(np.load(f))
     # Extracting each subset from the `datasets` list
     # Extraindo cada subset da lista `datasets`
-    train_corpus, valid_corpus, test_corpus = datasets
+    train_corpus, val_corpus, test_corpus = datasets
 
     # Dataset global variables
     # Variáveis globais do dataset
-    BATCH_SIZE = 128
+    BATCH_SIZE = 32
     BUFFER_SIZE = 1000
     
     # Model global variables
     # Variáveis globais do modelo
-    MAX_LEN = train_corpus.shape[1] - 1
-    EMBEDDING_DIM = 5000
-    DROPOUT_RATE = .1
-    # Loading vocabulary from trained tokenizer
-    # Carregando o vocabulário do tokenizer treinado
-    VOCAB_SIZE = len(pickle.load(open(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))['vocabulary'])
+    tokenizer = pickle.load(open(os.path.join(PATH_M, 'vectorizer.pkl'), 'rb'))
+    MAX_LEN = tokenizer['config']['output_sequence_length']
+    EMBEDDING_DIM = 16
+    DROPOUT_RATE = [.5, .5]
+    LR = 5e-3
+    VOCABULARY = tokenizer['vocabulary']
+    VOCAB_SIZE = len(VOCABULARY)
 
     # Creating `tensorflow.data.Dataset` for each subset
     # Criando o `tensorflow.data.Dataset` para cada subset
     train_set = create_batch_dataset(train_corpus, BATCH_SIZE, BUFFER_SIZE, shuffle=True)
-    valid_set = create_batch_dataset(valid_corpus, BATCH_SIZE, BUFFER_SIZE)
-    test_set = create_batch_dataset(test_corpus, BATCH_SIZE, BUFFER_SIZE)
+    val_set = create_batch_dataset(val_corpus, BATCH_SIZE, BUFFER_SIZE, shuffle=True)
+    test_set = create_batch_dataset(test_corpus, BATCH_SIZE, BUFFER_SIZE, shuffle=True)
 
     # Defining the range for testing each hyperparameter
     # Definindo a faixa para teste de cada hiperparâmetro
     space = [
-        (1e-6, 1e-1, 'log-uniform'), # learning rate
-        (100, 5000), # Embedding dimension
-        (.2, .8), # Dropout rate
-        (16, 128), # First LSTM units
-        (16, 128), # Second LSTM units
-        (16, 128), # First Dense units
-        (16, 128), # Second Dense units
+        (1e-4, 1e-1, 'log-uniform') # learning rate
     ]
-    
-    # Copying the training and validation subset to optimize the hyperparameters
-    # Copiando o subset de treino e de validação para otimizar os hiperparâmetros
-    X_train_opt = tf.identity(train_set)
-    X_valid_opt = tf.identity(valid_set)
     # Performing Bayesian optimization
     # Performando a bayesian optimization
     opt = gp_minimize(
@@ -312,25 +384,21 @@ if __name__ == '__main__':
         space,
         random_state=42,
         verbose=0,
-        n_calls=10,
-        n_random_starts=4
+        n_calls=5,
+        n_random_starts=2
     )
-
-    # Best hyperparameters
-    # Melhores hiperparâmetros
-    lr, emb, drp, lstm_1, lstm_2, fc_1, fc_2 = opt.x
+    # Best hyperparameter
+    # Melhor hiperparâmetro
+    #LR = opt.x
+    
     # Setting the model
     # Definindo o modelo
     model = create_and_compile_model(
         MAX_LEN,
         VOCAB_SIZE,
-        lr=lr,
-        embedding_dim=emb,
-        dropout_rate=drp,
-        lstm_1=lstm_1,
-        lstm_2=lstm_2,
-        dense_1=dense_1,
-        dense_2=dense_2,
+        lr=LR,
+        embedding_dim=EMBEDDING_DIM,
+        dropout_rate=DROPOUT_RATE
     )
     # Plotting the model summary
     # Plotando o resumo modelo
@@ -338,29 +406,60 @@ if __name__ == '__main__':
         
     # Setting the callbacks
     # Definindo os callbacks
+    reduce_lr_cb = ReduceLROnPlateau(monitor='val_loss', factor=.5, patience=2)
     checkpoint_cb = ModelCheckpoint(os.path.join(PATH_M, 'lstm_model.keras'), save_best_only=True)
-    early_stopping_cb = EarlyStopping(patience=50, restore_best_weights=True)
+    early_stopping_cb = EarlyStopping(patience=5, restore_best_weights=True)
     
     # Training the model
     # Treinando o modelo
     print('Training the model...')
     history = model.fit(
         train_set,
-        epochs=25,
-        validation_data=valid_set,
-        callbacks=[checkpoint_cb, early_stopping_cb],
-        verbose=2
+        epochs=10,
+        verbose=2,
+        validation_data=val_set,
+        callbacks=[reduce_lr_cb, checkpoint_cb, early_stopping_cb]
     )
 
     # Plotting the training models history
     # PLotando o histórico de treinamento do modelo
-    plot_history(history, 'accuracy')
+    plot_history(history, 'f1_score', name='model_history')
 
     # Evaluating the model on training and validation data
     # Avaliando o modelo nos dados de treino e de validação
-    print(f'Train set evaluate: {model.evaluate(train_set, verbose=0)[1]}')
-    print(f'Validation set evaluate: {model.evaluate(valid_set, verbose=0)[1]}')
-
+    print(f'Train set evaluate: {model.evaluate(train_set, verbose=0)[1]:.4f}')
+    print(f'Validation set evaluate: {model.evaluate(val_set, verbose=0)[1]:.4f}')
     # Evaluating the final model on the test set
     # Avaliando o modelo final no test set 
     print(f'Test set evaluate: {model.evaluate(test_set, verbose=0)[1]:.4f}')
+
+    # Concatenating all datasets to plot word embeddings
+    # Concatenando todos os datasets para plotar as word embeddings
+    dataset = np.concatenate(datasets)
+    print(f'Dataset dimension: {dataset.shape}')
+
+    # Selecting the corpus with only the positive and negative class
+    # Selecionando o corpus apenas com a classe positiva e negativa
+    pos_corpus = dataset[dataset[:, -1] == 1][:, :-1]
+    neg_corpus = dataset[dataset[:, -1] == 0][:, :-1]
+
+    # Obtaining the embedding layer and its weights to plot the embedding of each corresponding word
+    # Obtendo a embedding layer e seus pesos para plotar o embedding de cada palavra correspondente
+    embedding_layer = model.get_layer('embedding_layer')
+    embeddings = embedding_layer.get_weights()[0]
+
+    # Setting the global variable with the colors for the word embeddings plot
+    # Definindo a variável global com as cores para o plot das word embeddings
+    COLORS = ['cornflowerblue', 'chocolate']
+    # Plotting the word embeddings of the positive corpus and the negative corpus
+    # Plotando as word embeddings do corpus positivo e do corpus negativo
+    plot_word_embeddings(
+        embeddings,
+        pos_corpus,
+        neg_corpus,
+        VOCABULARY,
+        idx=3,
+        words_to_plot=10,
+        name='word_embeddings_2d',
+        colors=COLORS
+    )

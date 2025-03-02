@@ -11,12 +11,12 @@
 Gosto bastante de quadrinhos da Marvel de ação, mas, a Marvel tem muitos e nem todos são de ação. Portanto, decidi criar esse sistema que classificação cada quadrinho da Marvel, para então, eu conseguir decidir qual quadrinho irei ler.
 
 Esse repositório contêm a implementação de um sistema de classificação de sentimentos utilizando 2 abordagens de previsão.
-1. A primeira é uma arquitetura de LSTMs bidirecionais, criadas e treinadas do 0;
+1. A primeira é uma arquitetura de uma RNN utilizando uma layer LSTM bidirecional, criadas e treinadas do 0;
 2. A segunda é aplicando o fine-tuning em um modelo transformers pré-treinado.
 
 O sistema foi criado de ponta a ponta, ou seja, desde a conexão e autorização com a [API da Marvel](https://developer.marvel.com/), extração dos dados da API, realização da análise exploratória e do pré-processamento dos dados, que envolve na conversão de todas as palavras para lowercase, remoção das stopwords, stemming, remoção de pontuações, divisão do dataset, tokenização e padding, e em seguida, a definição e treinamento do modelo, dada os quadrinhos selecionados, posso escolher com mais clareza quais irei ler.
 
-O algoritmo da RNN utilizando LSTM bidirecionais foi criado utilizando o framework [tensorflow](https://www.tensorflow.org/?hl=pt-br). O algoritmo de fine-tuning no modelo transformers pré-treinado foi realizado utilizando o [Hugging Face](https://huggingface.co/) (🤗).
+O algoritmo da RNN utilizando uma layer LSTM bidirecional foi criado utilizando o framework [tensorflow](https://www.tensorflow.org/?hl=pt-br). O algoritmo de fine-tuning no modelo transformers pré-treinado foi realizado utilizando o [Hugging Face](https://huggingface.co/) (🤗).
 
 <a name="3"></a>
 ## Table of Contents

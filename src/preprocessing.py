@@ -6,10 +6,8 @@ import re
 import string
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-import tensorflow as tf
-from tensorflow.data import Dataset, AUTOTUNE
+from tensorflow.data import Dataset
 from tensorflow.keras.layers import TextVectorization
-from tensorflow.keras.utils import pad_sequences
 from sklearn.model_selection import StratifiedShuffleSplit
 import pickle
 from transformers import DistilBertTokenizer
@@ -83,10 +81,14 @@ def rnn_tokenizer(corpus, max_tokens=None, max_len=None):
                                     (tamanho máximo do vocabulário. Padrão para None).
         max_len (int, optional): maximum size of tokenized output. Defaults to None
                                  (tamanho máximo do output tokenizado. Padrão para None).
+
+    Return:
+        vectorize_layer (tensorflow.keras.layers.TextVectorization): vectorizer layer trained on the training set corpus
+                                                                     (vectorizer layer treinada sobre o training set corpus).
     """
     # Setting the tokenizer with the specified max_tokens and max_len
     # Definindo o tokenizer com o max_tokens e max_len especificados
-    vectorize_layer = tf.keras.layers.TextVectorization(
+    vectorize_layer = TextVectorization(
         max_tokens=max_tokens,
         output_sequence_length=max_len
     )
@@ -182,16 +184,16 @@ if __name__ == '__main__':
     # Dividindo entre treinamento e o subset da validação e teste
     split_train = StratifiedShuffleSplit(n_splits=1, test_size=.4, random_state=42)
     for train_index, subset_index in split_train.split(comics_corpus, comics_corpus['y']):
-        train_corpus, subset_corpus = comics_corpus.iloc[train_index, :], comics_corpus.iloc[subset_index, :]
+            train_corpus, subset_corpus = comics_corpus.iloc[train_index, :].copy(), comics_corpus.iloc[subset_index, :].copy()
     # Splitting between validation and testing
     # Dividindo entre validação e teste
     split_test = StratifiedShuffleSplit(n_splits=1, test_size=.5, random_state=42)
-    for valid_index, test_index in split_test.split(subset_corpus, subset_corpus['y']):
-        valid_corpus, test_corpus = subset_corpus.iloc[valid_index, :], subset_corpus.iloc[test_index, :]
+    for val_index, test_index in split_test.split(subset_corpus, subset_corpus['y']):
+        val_corpus, test_corpus = subset_corpus.iloc[val_index, :].copy(), subset_corpus.iloc[test_index, :].copy()
 
     # Setting the global variables `VOCAB_SIZE` and `MAX_LEN` to tokenize the training set
     # Definindo as variáveis globais `VOCAB_SIZE` e `MAX_LEN` para tokenizar o training set
-    VOCAB_SIZE = 10000
+    VOCAB_SIZE = 1000
     MAX_LEN = max([len(sentence.split()) for sentence in train_corpus['description']])
 
     # Training the tokenizer on the training set with the previously defined `VOCAB_SIZE` and `MAX_LEN`
@@ -201,7 +203,7 @@ if __name__ == '__main__':
     # Applying the trained tokenizer to each subset
     # Aplicando o tokenizador treinado em cada subset
     train_tokenized = sentence_vec(train_corpus['description'])
-    valid_tokenized = sentence_vec(valid_corpus['description'])
+    val_tokenized = sentence_vec(val_corpus['description'])
     test_tokenized = sentence_vec(test_corpus['description'])
 
     # Loading the trained tokenization model into the `../models/` directory for later use
@@ -215,13 +217,15 @@ if __name__ == '__main__':
 
     # Transforming the y labels into a column vector
     # Transformando os labels y em um vetor de coluna
-    labels_pre = comics_corpus['y'].to_numpy().reshape(-1, 1)
+    labels_train = train_corpus[['y']].copy()
+    labels_val = val_corpus[['y']].copy()
+    labels_test = test_corpus[['y']].copy()
     
     # Concatenating the corpus of each subset and the corresponding labels
     # Concatenando o corpus de cada subset e os labels correspondentes
-    train_tokens = np.concatenate([train_tokenized, labels_pre[train_index]], axis=1)
-    valid_tokens = np.concatenate([valid_tokenized, labels_pre[valid_index]], axis=1)
-    test_tokens = np.concatenate([test_tokenized, labels_pre[test_index]], axis=1)
+    train_tokens = np.concatenate([train_tokenized, labels_train], axis=1)
+    val_tokens = np.concatenate([val_tokenized, labels_val], axis=1)
+    test_tokens = np.concatenate([test_tokenized, labels_test], axis=1)
 
     # Loading the dataset with initial pre-processing into the `../data/preprocessed/` directory
     # Carregando no diretório `../data/preprocessed/` o dataset com pré-processamento inicial
@@ -230,44 +234,47 @@ if __name__ == '__main__':
     # Loading tokenized datasets into the `../data/preprocessed/` directory
     # Carregando no diretório `../data/preprocessed/` os datasets tokenizados
     np.save(os.path.join(PATH, 'preprocessed', 'train_tokens.npy'), train_tokens)
-    np.save(os.path.join(PATH, 'preprocessed', 'valid_tokens.npy'), valid_tokens)
+    np.save(os.path.join(PATH, 'preprocessed', 'validation_tokens.npy'), val_tokens)
     np.save(os.path.join(PATH, 'preprocessed', 'test_tokens.npy'), test_tokens)
 
     # Tokenizing, padding and returning the tokenized corpus as pytorch tensors using the pre-trained `distilbert` tokenizer
     # Tokenizando, aplicando o padding e retornando o corpus tokenizado como tensores pytorch utilizando o tokenizer `distilbert` pré-treinado
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased-finetuned-sst-2-english')
-    # Defining the tokenizer
+    # Setting the tokenizer
     # Definindo o tokenizer
     comics_transformers = tokenizer(
         comics_data['description'].tolist(),
         return_tensors='pt',
-        padding=True,
+        padding='max_length',
         truncation=True
     )
-    # Setting the vector representations of the corpus
-    # Definindo as representações vetoriais do corpus
+    # Accessing the vector representations of the corpus
+    # Acessando as representações vetoriais do corpus
     transformers_tokens = comics_transformers['input_ids']
     transformers_attention = comics_transformers['attention_mask']
 
     # Selecting labels from the raw dataset
     # Selecionando os labels do dataset bruto
-    labels = comics_data['y'].to_numpy().reshape(-1, 1)
+    labels = (comics_data['y']
+              .map(lambda x: 1 if x == 'action' else 0)
+              .to_numpy()
+              .reshape(-1, 1))
     
     # Splitting between training and the validation and testing subset
     # Dividindo entre treinamento e o subset da validação e teste
     train_idx, subset_idx = next(split_train.split(transformers_tokens, labels))
     # Splitting between validation and testing
     # Dividindo entre validação e teste
-    valid_idx, test_idx = next(split_test.split(transformers_tokens[subset_idx], labels[subset_idx]))
+    val_idx, test_idx = next(split_test.split(transformers_tokens[subset_idx], labels[subset_idx]))
 
     # Transforming split pytorch tensor subsets for type `Dataset` into dictionary format
     # Transformando os subsets de tensores pytorch divididos para o tipo `Dataset` em formato de dicionário
     train_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, train_idx)
-    valid_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, valid_idx)
+    val_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, val_idx)
     test_dataset = tensors_to_dataset(transformers_tokens, transformers_attention, labels, test_idx)
 
     # Loading each pre-processed dataset and its metadata into its specific directory within the `../data/preprocessed/` directory
     # Carregando cada dataset pré-processado e seus metadados dentro de seu diretório específico dentro do diretório `../data/preprocessed/`
-    train_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'train_dataset'))
-    valid_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'valid_dataset'))
-    test_dataset.save_to_disk(os.path.join(PATH, 'preprocessed', 'test_dataset'))
+    train_dataset.save_to_disk('../data/preprocessed/train_dataset')
+    val_dataset.save_to_disk('../data/preprocessed/validation_dataset')
+    test_dataset.save_to_disk('../data/preprocessed/test_dataset')

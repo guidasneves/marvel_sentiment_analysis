@@ -81,7 +81,7 @@ def get_word_frequency(dataset, size=10, drop_stopwords=False):
         size (int, optional): number of words in the dictionary with the highest frequency. Defaults to 10
                               (quantidade de palavras no dicionário com a maior frequência. Padrão para 10).
         drop_stopwords (bool, optional): drop stopwords if True, else do not drop. Defaults to False
-                                         (exclui as stopwords se True, else não exluci. Padrão para False)
+                                         (exclui as stopwords se True, else não exluci. Padrão para False).
 
     Returns:
         dir_path (str): path of the project root directory
@@ -147,6 +147,9 @@ def plot_bar(dataset, colors=None, name=None):
     if not colors:
         colors = ['b', 'r']
 
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('fivethirtyeight')
     # Setting the plot
     # Definindo o plot
     bar_plot = plt.bar(
@@ -200,6 +203,9 @@ def plot_hist_vs(dataset,
     if not colors:
         colors = ['b', 'r']
 
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('fivethirtyeight')
     # Setting the plot
     # Definindo o plot
     plt.hist(dataset[dataset['y'] == 'action'][feature], label='Action', color=colors[0], bins=bins)
@@ -241,6 +247,9 @@ def plot_wordcloud(dataset, cmap='gist_heat', name=None):
             )
     )
 
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('fivethirtyeight')
     # Setting the wordcloud plot
     # Definindo o wordcloud plot
     wc = WordCloud(
@@ -270,12 +279,12 @@ def plot_word_frequency(dataset, size=10, drop_stopwords=False, colors=None, nam
     Retorna um gráfico de barras comparando a distribuição das palavras mais frequentes entre as classes positiva e negativa.
     
     Arguments:
-        data (pandas.DataFrame): data (pandas.DataFrame): pandas DataFrame to create the word frequency dictionary and the word frequency bar plot
+        data (pandas.DataFrame): pandas DataFrame to create the word frequency dictionary and the word frequency bar plot
                                  (DataFrame do pandas para criar o dicionário de word frequency e o plot de barras de word frequency).
         size (int, optional): number of words in the dictionary with the highest frequency. Defaults to 10
                               (quantidade de palavras no dicionário com a maior frequência. Padrão para 10).
         drop_stopwords (bool, optional): drop stopwords if True, else do not drop. Defaults to False
-                                         (exclui as stopwords se True, else não exluci. Padrão para False)
+                                         (exclui as stopwords se True, else não exluci. Padrão para False).
         colors (list, optional): list with 2 colors arguments for the plot. Defaults to None
                                  (lista com 2 cores argumentos para o plot. Padrão para None).
         name (str, optional): name that the plot will be saved. Defaults to None
@@ -296,8 +305,12 @@ def plot_word_frequency(dataset, size=10, drop_stopwords=False, colors=None, nam
     if not colors:
         colors = ['b', 'r']
 
+    # Setting the plot style
+    # Definindo o estilo do plot
+    plt.style.use('fivethirtyeight')
     # Setting the plot
     # Definindo o plot
+    plt.figure(figsize=(10, 10))
     plt.bar(x, wf_action, width=width, color=colors[0], label='Action', edgecolor='white')
     plt.bar(x_shifted, wf_n_action, width=width, color=colors[1], label='Non-action', edgecolor='white')
     plt.xticks(range(size), keys)

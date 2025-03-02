@@ -6,14 +6,16 @@ time
 python-dotenv
 pandas
 numpy
+collections
 re
 nltk
 string
 scikit-learn
 tensorflow
+scikit-optimizer
 transformers
+datasets
 matplotlib
 PIL
 wordcloud
 pickle
-skopt

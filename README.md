@@ -1,9 +1,12 @@
 <a name="1"></a>
 # Classificação de Sentimento dos Quadrinhos Marvel de Ponta a Ponta
 
-* **Artigo no Medium** desse projeto em português: [Classificação de Sentimentos dos Quadrinhos Marvel]();
+* A publicação do artigo desse projeto no Medium foi separada entre 3 artigos. O 1° artigo aborda a etapa da ingestão, EDA e pré-processamento, o 2° artigo aborda a etapa da criação, treinamento e avaliação do modelo LSTM bidirecional, e o 3° artigo aborda a etapa do fine-tuning no modelo DistilBERT pré-treinado. **Artigos no Medium** desse projeto em português:
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 1) - Ingestão, EDA e Pré-processamento](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-1-ingest%C3%A3o-eda-e-pr%C3%A9-processamento-c5a0e35bb586);
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 2) - LSTM Bidirecional](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-2-lstm-bidirecional-101ca13b92a6);
+  * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 3) - Fine-tuning do DistilBERT](https://medium.com/@guineves.py/an%C3%A1lise-de-sentimentos-sobre-os-quadrinhos-da-marvel-parte-3-fine-tuning-do-distilbert-2648e14c9123).
 * Códigos completos desse projeto, com todas as explicações detalhadas em português: [notebooks](./notebooks);
-* Notebooks em inglês: [english notebooks](./notebooks/en_notebooks);
+  * Notebooks em inglês: [english notebooks](./notebooks/en_notebooks);
 * Scripts completos desse projeto em inglês e em português: [src](./src/).
 
 <a name="2"></a>
@@ -33,7 +36,17 @@ O algoritmo da RNN utilizando uma layer LSTM bidirecional foi criado utilizando 
 ## Setup
 <a name="4.1"></a>
 ### Dependências
-* [python](https://www.python.org/)
+* [python](https://www.python.org/);
+* [pandas](https://pandas.pydata.org/);
+* [numpy](www.numpy.org);
+* [nltk](https://www.nltk.org/);
+* [matplotlib](http://matplotlib.org);
+* [tensorflow](https://www.tensorflow.org/);
+* [scikit-learn](https://scikit-learn.org/stable/);
+* [skopt](https://scikit-optimize.github.io/stable/);
+* [pickle](https://docs.python.org/3/library/pickle.html);
+* [transformers](https://huggingface.co/docs/transformers/index);
+* [datasets](https://huggingface.co/docs/datasets/index).
 
 <a name="4.2"></a>
 ### Instalação

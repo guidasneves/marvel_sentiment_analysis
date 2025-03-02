@@ -43,7 +43,7 @@ O algoritmo da RNN utilizando uma layer LSTM bidirecional foi criado utilizando 
 * [matplotlib](http://matplotlib.org);
 * [tensorflow](https://www.tensorflow.org/);
 * [scikit-learn](https://scikit-learn.org/stable/);
-* [skopt](https://scikit-optimize.github.io/stable/);
+* [scikit-optimize](https://scikit-optimize.github.io/stable/);
 * [pickle](https://docs.python.org/3/library/pickle.html);
 * [transformers](https://huggingface.co/docs/transformers/index);
 * [datasets](https://huggingface.co/docs/datasets/index).

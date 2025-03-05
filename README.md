@@ -2,7 +2,7 @@
 # Classificação de Sentimento dos Quadrinhos Marvel de Ponta a Ponta
 <img align='center' src='./figures/marvel.png' style='width:600px;'>
 
-* A publicação do artigo desse projeto no Medium foi separada entre 3 artigos. O 1° artigo aborda a etapa da ingestão, EDA e pré-processamento, o 2° artigo aborda a etapa da criação, treinamento e avaliação do modelo LSTM bidirecional, e o 3° artigo aborda a etapa do fine-tuning no modelo DistilBERT pré-treinado. **Artigos no Medium** desse projeto em português:
+* A publicação do artigo desse projeto no Medium foi separada entre 3 artigos. O 1° artigo aborda a etapa da ingestão, EDA e pré-processamento, o 2° artigo aborda a etapa da criação, treinamento e avaliação do modelo LSTM bidirecional, criando a visualização dos word embeddings, e o 3° artigo aborda a etapa do fine-tuning no modelo DistilBERT pré-treinado. **Artigos no Medium** desse projeto em português:
   * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 1) - Ingestão, EDA e Pré-processamento](https://medium.com/@guineves.py/c5a0e35bb586);
   * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 2) - LSTM Bidirecional](https://medium.com/@guineves.py/101ca13b92a6);
   * [Análise de Sentimentos Sobre os Quadrinhos da Marvel (Parte 3) - Fine-tuning do DistilBERT](https://medium.com/@guineves.py/2648e14c9123).

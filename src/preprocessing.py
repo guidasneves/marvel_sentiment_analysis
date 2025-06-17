@@ -27,6 +27,10 @@ def rnn_preprocess(sentence):
     Argument:
         sentence (str): text that will be preprocessed
                         (texto que será pré-processado).
+
+    Return:
+        clean_sentence (str): preprocessed text
+                              (texto pré-processado).
     """
     stemmer = PorterStemmer()
     stopwords_en = stopwords.words('english')

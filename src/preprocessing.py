@@ -135,7 +135,7 @@ def tensors_to_dataset(input_ids, attention_mask, labels, idx=...):
         'labels': labels[idx]
     }
 
-    # # Creating the `Dataset` object from the dictionary we created above
+    # Creating the `Dataset` object from the dictionary we created above
     # Criando o objeto `Dataset` do dicionário que criamos acima 
     dataset = Dataset.from_dict(dataset_dict)
     # Transforming the Dataset format to pytorch tensor

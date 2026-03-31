@@ -20,6 +20,8 @@ Esse repositório contêm a implementação de um sistema de classificação de 
 
 O sistema foi criado de ponta a ponta, ou seja, desde a conexão e autorização com a [API da Marvel](https://developer.marvel.com/), extração dos dados da API, realização da análise exploratória e do pré-processamento dos dados, que envolve na conversão de todas as palavras para lowercase, remoção das stopwords, stemming, remoção de pontuações, divisão do dataset, tokenização e padding, e em seguida, a definição e treinamento do modelo, dado os quadrinhos classificados, posso escolher com mais clareza quais irei ler.
 
+<img align='center' src='./figures/architecture.drawio.png' style='width:800px;'>
+
 O algoritmo da RNN utilizando uma layer LSTM bidirecional foi criado utilizando o framework [tensorflow](https://www.tensorflow.org/?hl=pt-br). O algoritmo de fine-tuning no modelo transformers pré-treinado foi realizado utilizando o [Hugging Face](https://huggingface.co/) (🤗).
 
 <a name="3"></a>
